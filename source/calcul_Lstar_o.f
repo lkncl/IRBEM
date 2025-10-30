@@ -79,6 +79,7 @@ C
        REAL*8     pi,rad
        common /rconst/rad,pi
 C
+       tet(:) = 0
 C
        Nder=Nder_def*r_resol
        Nreb=Nreb_def
