@@ -72,6 +72,8 @@ C
 C
        REAL*8     Bo,xc,yc,zc,ct,st,cp,sp
 C
+       INTEGER*4     FLAG_IN_EARTH
+C
        COMMON /dipigrf/Bo,xc,yc,zc,ct,st,cp,sp
        COMMON /calotte/tet
        COMMON /flag_L/Ilflag
@@ -80,6 +82,7 @@ C
        common /rconst/rad,pi
 C
        tet(:) = 0
+       FLAG_IN_EARTH = 0
 C
        Nder=Nder_def*r_resol
        Nreb=Nreb_def
@@ -371,6 +374,7 @@ C
 	IF (tetl.GT.pi .OR. tetl.LT.0.D0) GOTO 108
 	GOTO 107
 108     CONTINUE
+       IF (leI.eq.baddata .or. leI1.eq.baddata) FLAG_IN_EARTH = 1 ! tet failed
         tet(I) = 0.5D0*(tetl+tet1)
 c	read(5,*)
 	IF (J.GE.Nrebmax .AND. leI.GT.0.D0) THEN
@@ -501,7 +505,7 @@ C
        ENDDO
        if (k_l .eq.1) Lstar = 2.D0*pi*Bo/somme
        if (k_l .eq.2) Lstar = somme  ! Phi and not Lstar
-       IF (Lm.LT.0.D0) Lstar = -Lstar
+       IF (Lm.LT.0.D0 .or. flag_in_earth.eq.1) Lstar = -Lstar
        Ilflag = 1
 C
        END
