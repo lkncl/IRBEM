@@ -89,12 +89,18 @@ $(SRC_DIR)/myOwnMagField_init.f : myOwnMagField-pre
 #     Sources and compilation rules
 #------------------------------------------------------------------------------
 
-
 F77_SOURCES = $(wildcard $(SRC_DIR)/*.f)
 C99_SOURCES = $(wildcard $(SRC_DIR)/*.c)
+F90_SOURCES = $(wildcard $(SRC_DIR)/*.f90)
 
 F77_OBJS = $(patsubst $(SRC_DIR)/%.f,$(BIN_DIR)/%.o,$(F77_SOURCES))
 C99_OBJS = $(patsubst $(SRC_DIR)/%.c,$(BIN_DIR)/%.o,$(C99_SOURCES))
+F90_OBJS = $(patsubst $(SRC_DIR)/%.f90,$(BIN_DIR)/%.o,$(F90_SOURCES))
+
+$(BIN_DIR)/onera_desp_lib.o : $(BIN_DIR)/array_utils.o
+
+$(BIN_DIR)/%.o : $(SRC_DIR)/%.f90
+	$(FC) $(FFLAGS) -J$(BIN_DIR) -c -o $@ $<
 
 $(BIN_DIR)/onera_desp_lib.o : $(SRC_DIR)/fortran_version.inc $(SRC_DIR)/fortran_release.inc
 
@@ -104,7 +110,7 @@ $(BIN_DIR)/%.o : $(SRC_DIR)/%.f
 $(BIN_DIR)/%.o : $(SRC_DIR)/%.c
 	$(CC) $(CFLAGS) -c -o $@ $< 
 
-$(LIB_NAME) : $(F77_OBJS) $(C99_OBJS)
+$(LIB_NAME) : $(F77_OBJS) $(F90_OBJS) $(C99_OBJS)
 	$(LD) $(LDFLAGS) -o $@ $^
 
 #------------------------------------------------------------------------------

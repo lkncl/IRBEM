@@ -81,6 +81,8 @@ C
        REAL*8     pi,rad
        common /rconst/rad,pi
 C
+       INTEGER*4 depth
+
        tet(:) = 0
        FLAG_IN_EARTH = 0
 C
@@ -279,6 +281,8 @@ c up with /0 error at smin below
        rr = sqrt(x2(1)*x2(1)+x2(2)*x2(2)+x2(3)*x2(3))
        tet(1) = ACOS(x2(3)/rr)
        phi(1) = ATAN2(x2(2),x2(1))
+
+       !write(6,*) "tet(",1,")",phi(1), tet(1),"leI0", leI0
 C
 c "and one turns" -> "one shifts on surface in phi and one seeks teta 
 c    to have the constant IO and BO"
@@ -302,6 +306,9 @@ c	write(6,*)tetl
 c	read(5,*)
 	leI1 = baddata
 C
+
+       depth = 0
+
 107     CONTINUE
         x1(1) = SIN(tetl)*COS(phi(I))
         x1(2) = SIN(tetl)*SIN(phi(I))
@@ -363,8 +370,18 @@ C
 	 Iflag_I = 1
 	 GOTO 107
 	ENDIF
-	IF ((leI-leI0)*(leI1-leI0) .LT. 0.D0) GOTO 108
-	leI1 = leI
+
+	IF ((leI-leI0)*(leI1-leI0) .LT. 0.D0) THEN
+       !
+       !       IF ((leI.eq.baddata.or.leI1.eq.baddata).and.(depth<10)) THEN
+       !              dtet = dtet/2.D0
+       !              depth = depth + 1
+       !       ELSE
+                     GOTO 108
+       !       ENDIF
+	ENDIF
+       
+       leI1 = leI
 	tet1 = tetl
 	IF (leI.LT.leI0) THEN
 	 tetl = tetl-dtet
@@ -374,6 +391,9 @@ C
 	IF (tetl.GT.pi .OR. tetl.LT.0.D0) GOTO 108
 	GOTO 107
 108     CONTINUE
+       
+       dtet = pi/Ntet
+       
        IF (leI.eq.baddata .or. leI1.eq.baddata) FLAG_IN_EARTH = 1 ! tet failed
         tet(I) = 0.5D0*(tetl+tet1)
 c	read(5,*)
@@ -382,6 +402,8 @@ c	read(5,*)
 	 RETURN
 	ENDIF
 C
+
+       !write(6,*) "tet(",I,")",phi(I), tet(I), "leI_bound", leI, leI1, "depth", depth
         x1(1) = SIN(tet(I))*COS(phi(I))
         x1(2) = SIN(tet(I))*SIN(phi(I))
         x1(3) = COS(tet(I))
@@ -505,7 +527,8 @@ C
        ENDDO
        if (k_l .eq.1) Lstar = 2.D0*pi*Bo/somme
        if (k_l .eq.2) Lstar = somme  ! Phi and not Lstar
-       IF (Lm.LT.0.D0 .or. flag_in_earth.eq.1) Lstar = -Lstar
+       IF (Lm.LT.0.D0) Lstar =-Lstar
+       !IF(Lm.GE.0.D0 .and. flag_in_earth.eq.1) Lstar = -Lstar
        Ilflag = 1
 C
        END
