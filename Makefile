@@ -97,8 +97,14 @@ F77_OBJS = $(patsubst $(SRC_DIR)/%.f,$(BIN_DIR)/%.o,$(F77_SOURCES))
 C99_OBJS = $(patsubst $(SRC_DIR)/%.c,$(BIN_DIR)/%.o,$(C99_SOURCES))
 F90_OBJS = $(patsubst $(SRC_DIR)/%.f90,$(BIN_DIR)/%.o,$(F90_SOURCES))
 
-$(BIN_DIR)/calcul_Lstar_o.o \
-$(BIN_DIR)/loc_equator.o : $(BIN_DIR)/fieldline_utils.o
+FIELDLINE_USERS = \
+    $(BIN_DIR)/calcul_Lstar_o.o \
+	$(BIN_DIR)/find_foot.o \
+	$(BIN_DIR)/trace_drift_shell.o \
+	$(BIN_DIR)/loc_equator.o :
+
+$(FIELDLINE_OBJECTS) : $(BIN_DIR)/fieldline_utils.o
+
 $(BIN_DIR)/onera_desp_lib.o : $(BIN_DIR)/array_utils.o
 
 $(BIN_DIR)/%.o : $(SRC_DIR)/%.f90
