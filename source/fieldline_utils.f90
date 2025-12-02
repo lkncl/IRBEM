@@ -7,7 +7,7 @@ MODULE fieldline_utils
 
     PUBLIC :: FIND_MAGEQUATOR
     PUBLIC :: FIND_MIRROR_POINT
-    PUBLIC :: FIND_FIELDLINE_FOOT_FROM_POS
+    PUBLIC :: FIND_FIELDLINE_FOOT
     PUBLIC :: COMPUTE_L_DIPOLE
     PUBLIC :: COMPUTE_L_MCILWAIN_HILTON
     PUBLIC :: COMPUTE_FIELDLINE_FROM_MIR
@@ -373,90 +373,214 @@ MODULE fieldline_utils
     END SUBROUTINE
 
     !=======================================================================
-    ! Purpose    : Compute the magnetic footpoints (Earth intersection
+    ! Purpose    : Compute the magnetic footpoint (Earth intersection
     !              points) of the field line corresponding to a given
-    !              second adiabatic invariant and a specified mirror field
-    !              strength B_mirr.
+    !              GEO coordinate
     !
     ! Inputs     :
-    !   leI     - second adiabatic invariant (or normalized version)
-    !   Bmirr   - magnitude of magnetic field at mirror point
+    !   xGEO(3) - position (GEO) on the field line
+    !   dsreb - integration arc-length step along the magnetic field line
+    !   nrebmax - maximum number of dsreb steps along the magnetic field line
+    !   stop_type :
+    !       - 0 : stop at a given GEO radius
+    !       - 1 : stop at a given GDZ alti
+    !   stop_value :
+    !       - stop_value = stop_radius (Re) if stop_type = 0
+    !       - stop_value = stop_alt (km) if stop_type = 1
+    !   hemi_flag : hemishere flag, specifies hemisphere of foot point
+    !      0 - same Hemisphere as start point
+    !      +1 - Northern Hemisphere
+    !      -1 - Southern Hemisphere
+    !      2 - opposite Hemisphere as start point
     !
     ! Outputs    :
-    !    tetf   - northern magnetic footpoint colatitude (radian, 0 = north pole)
+    !    xfoot - footpoint (GEO (Re) if stop_type = 0, GDZ (alt, lat, long) if stop_type = 1)
+    !    bfoot - magnetic field vector at foot point(nT, GEO)
+    !    bfootmag - Magnetic field at foot point (nT)
     !=======================================================================
-    SUBROUTINE FIND_FIELDLINE_FOOT()
+    SUBROUTINE FIND_FIELDLINE_FOOT(xGEO, dsreb, nrebmax, stop_type, stop_value, hemi_flag, &
+                                    xfoot, bfoot, bfootmag)
         IMPLICIT NONE
+        INCLUDE 'variables.inc'
+        REAL(8), INTENT(IN) :: xGEO(3), dsreb, stop_value
+        INTEGER(4), INTENT(IN) :: stop_type, nrebmax, hemi_flag
+        REAL(8), INTENT(OUT) :: xfoot(3), bfoot(3), bfootmag
 
-    END SUBROUTINE
+        REAL(8) :: x1(3), x2(3), x3(3), dsreb_loc, rr, Bl, B1, B3, smin
+        INTEGER(4) :: I, J, Ifail
+        LOGICAL :: UNDER_LIMIT
 
-    !=======================================================================
-    ! Purpose : Returns the position (colatitude, longitude GEO) of the footpoint (north)
-    ! Input : 
-    !   pos(3) - position (GEO) on the field line
-    !   dsreb - integration arc-length step along the magnetic field line
-    !   rebmax - maximum number of dsreb steps along the magnetic field line
-    ! Output :
-    !   tet - colatitude (GEO) of the footpoint (North)
-    !   phi - longitude (GEO) of the footpoint (North)
-    !=======================================================================
-    SUBROUTINE FIND_FIELDLINE_FOOT_FROM_POS(pos, dsreb, nrebmax, tet, phi)
-        
-        IMPLICIT NONE
-        REAL(8), INTENT(IN) :: pos(3)
-        REAL(8), INTENT(IN) :: dsreb
-        INTEGER(4), INTENT(IN) :: nrebmax
-        REAL(8), INTENT(OUT) :: tet, phi
-
-        REAL(8) :: x1(3), x2(3), rr, Bl, smin, dsreb_loc
-
-        INTEGER(4) :: Ilflag, Ifail
-        INTEGER(4) :: I, J
-        COMMON /flag_L/Ilflag
-        ! "calculation of the point of the field line on the surface 
-        !    of the earth of the northern slope(?)"
-        ! calcul du point sur la ligne de champ a la surface de la terre du
-        ! cote nord
-        !
+        ! init
         DO I = 1,3
-                x1(I)  = pos(I)
+            x1(I) = xGEO(I)
+            xfoot(I) = baddata
+            bfoot(I) = baddata
         ENDDO
-        dsreb_loc = ABS(dsreb)
-        DO J = 1,Nrebmax
-            CALL sksyst(dsreb_loc,x1,x2,Bl,Ifail)
-            IF (Ifail.LT.0) THEN
-                Ilflag = 0
-                RETURN
-            ENDIF
-            rr = sqrt(x2(1)*x2(1)+x2(2)*x2(2)+x2(3)*x2(3))
-            IF (rr.LT.1.D0) GOTO 102
+        bfootmag = baddata
+        dsreb_loc = abs(dsreb)
 
-        ! need to return if we past here at Nrebmax, as we will end
-        ! up with /0 error at smin below
-
-            IF (J.EQ.Nrebmax) THEN
-                Ilflag = 0
-                RETURN
-            ENDIF
-            x1(1) = x2(1)
-            x1(2) = x2(2)
-            x1(3) = x2(3)
-        ENDDO
-102     CONTINUE
-
-        ! compute fraction of step to reach the earth (linear approx)
-        smin = sqrt(x1(1)*x1(1)+x1(2)*x1(2)+x1(3)*x1(3))
-        smin = (1.D0-smin)/(rr-smin)
-        CALL sksyst(smin*dsreb_loc,x1,x2,Bl,Ifail)
-        IF (Ifail.LT.0) THEN
-                Ilflag = 0
-                RETURN
+        ! check if initial point is already under limit
+        IF (stop_type .eq. 0) THEN
+            rr = sqrt(x1(1)*x1(1)+x1(2)*x1(2)+x1(3)*x1(3))
+            IF (rr .le. stop_value) RETURN
+        ELSE IF (stop_type .eq. 1) THEN
+            CALL GEO_GDZ(x1(1), x1(2), x1(3), &
+                        x2(2), x2(3), x2(1))
+            IF (x1(1) .le. stop_value) RETURN
         ENDIF
-        rr = sqrt(x2(1)*x2(1)+x2(2)*x2(2)+x2(3)*x2(3))
-        tet = ACOS(x2(3)/rr)
-        phi = ATAN2(x2(2),x2(1))
+
+        dsreb_loc = min(dsreb_loc, 1.0D0)
+
+        ! compute direction of departure
+        ! get field one step southward (B1)
+        CALL SKSYST(-dsreb_loc, x1, x2, B1, Ifail)
+        IF (Ifail .lt. 0) RETURN
+
+        ! get field one step northward (B3)
+        CALL SKSYST(dsreb_loc, x1, x2, B3, Ifail)
+        IF (Ifail .lt. 0) RETURN
+        
+        ! compute direction considering hemi_flag
+        ! if hemi = 0 and already in northern hemi -> go north -> positive dsreb
+        ! if hemi = 0 and in southern hemi -> go south -> negative dsreb
+        IF ((hemi_flag .eq. 0) .and. (B1 .gt. B3)) dsreb_loc = -dsreb_loc
+
+        ! if hemi = 1, northern hemi -> go north -> positive dsreb
+        ! if hemi = -1, southern hemi -> go south -> negative dsreb
+        IF (hemi_flag .eq. -1) dsreb_loc = -dsreb_loc
+
+        ! if hemi = 2, and in southern hemi -> go north -> positive dsreb
+        ! if hemi = 2, and in northern hemi -> go south -> negative dsreb
+        IF ((hemi_flag .eq. 2) .and. (B1 .lt. B3)) dsreb_loc = -dsreb_loc
+
+        ! follow field line until we reach stopping condition
+15      UNDER_LIMIT = .false.
+        DO J = 1, nrebmax
+            CALL SKSYST(dsreb_loc, x1, x2, Bl, Ifail)
+            IF (Ifail .lt. 0) RETURN
+
+            ! Check stop condition
+            IF (stop_type .eq. 0) THEN
+                rr = sqrt(x2(1)*x2(1)+x2(2)*x2(2)+x2(3)*x2(3))
+                IF (rr.LT.stop_value) UNDER_LIMIT = .true.
+            ELSE IF (stop_type .eq. 1) THEN
+                call geo_gdz(x2(1),x2(2),x2(3),x3(2),x3(3),x3(1))
+                if (x3(1).LE.stop_value) UNDER_LIMIT = .true.
+            ENDIF
+            ! exit loop
+            IF (UNDER_LIMIT) GOTO 20
+            DO I = 1, 3
+                x1(I) = x2(I)
+            ENDDO
+        ENDDO
+20      CONTINUE
+
+        IF (J .ge. nrebmax) RETURN ! open field line
+
+        ! correct foot position
+        ! legacy correction for GEO stop condition
+        IF (stop_type .eq. 0) THEN
+            ! compute fraction of step to reach the earth (linear approx)
+            smin = sqrt(x1(1)*x1(1)+x1(2)*x1(2)+x1(3)*x1(3))
+            smin = (1.D0-smin)/(rr-smin)
+            CALL sksyst(smin*dsreb_loc,x1,x2,Bl,Ifail)
+            IF (Ifail.LT.0) RETURN
+            call CHAMP(x2,bfoot,bfootmag,Ifail)
+            IF (Ifail.LT.0) RETURN
+
+            DO I = 1, 3
+                xfoot(I) = x2(I)
+            ENDDO
+            RETURN
+            ! rr = sqrt(x2(1)*x2(1)+x2(2)*x2(2)+x2(3)*x2(3))
+            ! tet = ACOS(x2(3)/rr)
+            ! phi = ATAN2(x2(2),x2(1))
+        
+        ELSE IF (stop_type .eq. 1) THEN
+            ! footpoint is between x1 and x2
+            IF(abs(x3(1)-stop_value).le.1.0) then
+                !get B field at x2
+                call CHAMP(x2,bfoot,bfootmag,Ifail)
+                IF(Ifail.LT.0) RETURN
+                DO I = 1, 3
+                    xfoot(I) = x2(I)
+                ENDDO
+                RETURN
+            ELSE  ! try loop again with smaller step
+                dsreb_loc = dsreb_loc/100.0
+                goto 15
+            ENDIF
+        ENDIF
 
     END SUBROUTINE
+
+!     !=======================================================================
+!     ! Purpose : Returns the position (colatitude, longitude GEO) of the footpoint (north)
+!     ! Input : 
+!     !   pos(3) - position (GEO) on the field line
+!     !   dsreb - integration arc-length step along the magnetic field line
+!     !   nrebmax - maximum number of dsreb steps along the magnetic field line
+!     ! Output :
+!     !   tet - colatitude (GEO) of the footpoint (North)
+!     !   phi - longitude (GEO) of the footpoint (North)
+!     !=======================================================================
+!     SUBROUTINE FIND_FIELDLINE_FOOT_FROM_POS(pos, dsreb, nrebmax, tet, phi)
+        
+!         IMPLICIT NONE
+!         REAL(8), INTENT(IN) :: pos(3)
+!         REAL(8), INTENT(IN) :: dsreb
+!         INTEGER(4), INTENT(IN) :: nrebmax
+!         REAL(8), INTENT(OUT) :: tet, phi
+
+!         REAL(8) :: x1(3), x2(3), rr, Bl, smin, dsreb_loc
+
+!         INTEGER(4) :: Ilflag, Ifail
+!         INTEGER(4) :: I, J
+!         COMMON /flag_L/Ilflag
+!         ! "calculation of the point of the field line on the surface 
+!         !    of the earth of the northern slope(?)"
+!         ! calcul du point sur la ligne de champ a la surface de la terre du
+!         ! cote nord
+!         !
+!         DO I = 1,3
+!                 x1(I)  = pos(I)
+!         ENDDO
+!         dsreb_loc = ABS(dsreb)
+!         DO J = 1,Nrebmax
+!             CALL sksyst(dsreb_loc,x1,x2,Bl,Ifail)
+!             IF (Ifail.LT.0) THEN
+!                 Ilflag = 0
+!                 RETURN
+!             ENDIF
+!             rr = sqrt(x2(1)*x2(1)+x2(2)*x2(2)+x2(3)*x2(3))
+!             IF (rr.LT.1.D0) GOTO 102
+
+!         ! need to return if we past here at Nrebmax, as we will end
+!         ! up with /0 error at smin below
+
+!             IF (J.EQ.Nrebmax) THEN
+!                 Ilflag = 0
+!                 RETURN
+!             ENDIF
+!             x1(1) = x2(1)
+!             x1(2) = x2(2)
+!             x1(3) = x2(3)
+!         ENDDO
+! 102     CONTINUE
+
+!         ! compute fraction of step to reach the earth (linear approx)
+!         smin = sqrt(x1(1)*x1(1)+x1(2)*x1(2)+x1(3)*x1(3))
+!         smin = (1.D0-smin)/(rr-smin)
+!         CALL sksyst(smin*dsreb_loc,x1,x2,Bl,Ifail)
+!         IF (Ifail.LT.0) THEN
+!                 Ilflag = 0
+!                 RETURN
+!         ENDIF
+!         rr = sqrt(x2(1)*x2(1)+x2(2)*x2(2)+x2(3)*x2(3))
+!         tet = ACOS(x2(3)/rr)
+!         phi = ATAN2(x2(2),x2(1))
+
+!     END SUBROUTINE
 
 
     SUBROUTINE INTEGRATE_J_ON_FIELDLINE_FROM_FOOTPOINT(xfoot, bmirr, dsreb, &
@@ -552,8 +676,10 @@ MODULE fieldline_utils
         REAL(8) :: phil, tetl, tet1, rr2, rr32, dtet
         REAL(8) :: leI, leI1, Bl, B(3)
         REAL(8) :: x1(3), x2(3)
+        REAL(8) :: stop_value
 
         INTEGER(4) :: Ilflag, Ifail, Iflag_I
+        INTEGER(4) :: stop_type, hemi_flag
         INTEGER(4) :: I, J
 
         LOGICAL :: FLAG_IN_EARTH, EXCEEDED_NMAXREB
@@ -572,9 +698,15 @@ MODULE fieldline_utils
         !
 
         ! compute the first foot position from input position (north side)
-        CALL FIND_FIELDLINE_FOOT_FROM_POS(pos, dsreb, nrebmax, tetl, phil)
-        tet(1) = tetl
-        phi(1) = phil
+        hemi_flag = 1
+        stop_type = 0
+        stop_value = 1.0D0
+        CALL FIND_FIELDLINE_FOOT(pos, dsreb, nrebmax, stop_type, stop_value, &
+            hemi_flag, x1, B, Bl)
+
+        rr2 = sqrt(x1(1)*x1(1)+x1(2)*x1(2)+x1(3)*x1(3))
+        tet(1) = ACOS(x1(3)/rr2)
+        phi(1) = ATAN2(x1(2),x1(1))
 
         ! instead of going from point to foot, start at a test footpoint
         dsreb_loc = -dsreb
