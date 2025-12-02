@@ -75,102 +75,102 @@
 
        SUBROUTINE field_line_tracing_opt2(xx0,&
               R0,Lm,leI0,Bposit,Bmin,posit,Nposit)
-!
-!    modified from field_line_tracing to add R0 parameter: radius (Re) of
-!    reference surface
+       !    modified from field_line_tracing to add R0 parameter: radius (Re) of
+       !    reference surface
+              IMPLICIT NONE
+              INTEGER*4  Nreb,Ntet,Nrebmax
+              PARAMETER (Nreb = 150, Ntet = 720, Nrebmax = Nreb*20)
 
-       USE fieldline_utils
-       IMPLICIT NONE
-       INCLUDE 'variables.inc'
-!
-       INTEGER*4  Nreb,Ntet
-       PARAMETER (Nreb = 150, Ntet = 720)
-!
-       INTEGER*4  k_ext,k_l,kint
-       INTEGER*4  Nrebmax
-       REAL*8     rr,rr2
-       REAL*8     xx0(3),xx(3),x1(3),x2(3)
-       REAL*8     xmin(3)
-       REAL*8     lati,longi,alti
-       REAL*8     B(3),Bl,B0,Bmin,B1,B3
-       REAL*8     dsreb,smin
+              REAL(8), INTENT(IN) :: xx0(3), R0
+              REAL(8), INTENT(OUT) :: Lm, leI0, Bmin
+              REAL(8), INTENT(OUT) :: posit(3,Nrebmax),Bposit(Nrebmax)
+              INTEGER(4), INTENT(OUT) :: Nposit
 
-       INTEGER*4  I,J,Iflag,Iflag_I,Ilflag,ind,II,Ifail
-       INTEGER*4  Nposit
-       REAL*8     Lm,Lstar,Lb
-       REAL*8     leI,leI0,leI1
-       REAL*8     XY,YY
-       REAL*8     aa,bb
-!
-       REAL*8     tt
-       REAL*8     tetl,tet1,dtet, phil
-       REAL*8     somme
-!
-       REAL*8     Bo,xc,yc,zc,ct,st,cp,sp
-!
-       REAL*8     posit(3,20*Nreb),Bposit(20*Nreb)
-       real*8     R0,R02 ! R0^2
-!
-       COMMON /dipigrf/Bo,xc,yc,zc,ct,st,cp,sp
-       COMMON /flag_L/Ilflag
-       COMMON /magmod/k_ext,k_l,kint
-!
-!
-       R02 = R0*R0
-!
-       Nrebmax = 20*Nreb
-!       write(*,*)'Nrebmax',Nrebmax
-!
-       Lm = baddata
-       leI0 = 0.D0
-!
+              CALL field_line_tracing_flex(xx0, &
+                     R0,Lm,leI0,Bposit,Bmin,posit,Nposit, &
+                     Nreb)
+       END SUBROUTINE
 
-       CALL COMPUTE_L_DIPOLE(xx0, Lb)
-!
-       CALL CHAMP(xx0,B,B0,Ifail)
-       IF (Ifail.LT.0) THEN
-          leI0 = baddata
-          Bmin = baddata
-	  RETURN
-       ENDIF
-       Bmin = B0
-!
-       dsreb = Lb/Nreb
+       SUBROUTINE field_line_tracing_flex(xx0,&
+              R0,Lm,leI0,Bposit,Bmin,posit,Nposit, &
+              Nreb)
 
-       CALL COMPUTE_FIELDLINE_FROM_MIR(xx0, dsreb, nrebmax, xmin, Bmin, leI0, Lm)
-       CALL FIND_FIELDLINE_FOOT_FROM_POS(xx0, dsreb, nrebmax, tetl, phil)
+              USE fieldline_utils
+              IMPLICIT NONE
+              INCLUDE 'variables.inc'
+       !
+              INTEGER(4), INTENT(IN) :: Nreb
+              INTEGER(4) :: Nrebmax
+              REAL*8     rr2
+              REAL*8     xx0(3),x1(3),x2(3)
+              REAL*8     xmin(3)
+              REAL*8     B(3),Bl,B0,Bmin
+              REAL*8     dsreb
 
-!
-! trace la ligne de champ complete.
-!
-       !tracing
-       x1(1) = SIN(tetl)*COS(phil)
-       x1(2) = SIN(tetl)*SIN(phil)
-       x1(3) = COS(tetl)
+              INTEGER*4  I, J,ind,Ifail
+              INTEGER*4  Nposit
+              REAL*8     Lm,Lb
+              REAL*8     leI0
+       !
+              INTEGER(4) :: stop_type, hemi_flag
+              REAL(8) :: stop_value, bfoot(3), bfootmag
+       !
+       !
+              REAL*8     posit(3,Nrebmax),Bposit(Nrebmax)
+              real*8     R0,R02 ! R0^2
+       !
+       !
+       !
+              R02 = R0*R0
+       !
+              Nrebmax = 20*Nreb
+       !
+              Lm = baddata
+              leI0 = baddata
+              Bmin = baddata
+       !
 
-       ind=1
-       Nposit=ind
-       posit(1,ind)=x1(1)
-       posit(2,ind)=x1(2)
-       posit(3,ind)=x1(3)
-       Bposit(ind)=Bl
-       DO J = 1,Nrebmax-1 ! this is the corrected version
-                            !, gives 3000 values, A. Kellerman
-              CALL sksyst(-dsreb,x1,x2,Bl,Ifail)
+              CALL COMPUTE_L_DIPOLE(xx0, Lb)
+       !
+              CALL CHAMP(xx0,B,B0,Ifail)
               IF (Ifail.LT.0) RETURN
-	       ind=ind+1
-	       posit(1,ind)=x2(1)
-	       posit(2,ind)=x2(2)
-	       posit(3,ind)=x2(3)
+
+              dsreb = Lb/Nreb
+
+              CALL COMPUTE_FIELDLINE_FROM_MIR(xx0, dsreb, nrebmax, xmin, Bmin, leI0, Lm)
+              
+              stop_type = 0 ! Radius GEO stop criterion
+              stop_value = 1.0D0 ! Re = 1 stop condition
+              hemi_flag = 1 ! north
+              CALL FIND_FIELDLINE_FOOT(xx0, dsreb, nrebmax, stop_type, stop_value, &
+              hemi_flag, x1, bfoot, bfootmag)
+
+       ! trace la ligne de champ complete.
+       !
+              !tracing
+
+              ind=1
+              Nposit=ind
+              posit(1,ind)=x1(1)
+              posit(2,ind)=x1(2)
+              posit(3,ind)=x1(3)
               Bposit(ind)=Bl
-!	 write(6,*)J,x1(1),x1(2),x1(3),Bl
-              rr2 = x2(1)*x2(1)+x2(2)*x2(2)+x2(3)*x2(3)
-              IF (rr2.LT.R02) GOTO 201
-              x1(1) = x2(1)
-              x1(2) = x2(2)
-              x1(3) = x2(3)
-       ENDDO
-201    CONTINUE
-       Nposit=ind
+              DO J = 1,Nrebmax-1 ! this is the corrected version
+                                   !, gives 3000 values, A. Kellerman
+                     CALL sksyst(-dsreb,x1,x2,Bl,Ifail)
+                     IF (Ifail.LT.0) RETURN
+                     ind=ind+1
+                     posit(1,ind)=x2(1)
+                     posit(2,ind)=x2(2)
+                     posit(3,ind)=x2(3)
+                     Bposit(ind)=Bl
+                     rr2 = x2(1)*x2(1)+x2(2)*x2(2)+x2(3)*x2(3)
+                     IF (rr2.LT.R02) GOTO 201
+                     x1(1) = x2(1)
+                     x1(2) = x2(2)
+                     x1(3) = x2(3)
+              ENDDO
+201           CONTINUE
+              Nposit=ind
        END
 !
