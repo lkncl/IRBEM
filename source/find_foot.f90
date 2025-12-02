@@ -128,57 +128,75 @@
 !      REAL*8 BFOOTMAG - Magnetic field at foot point (nT)
        IMPLICIT NONE
 
-       INTEGER*4  k_ext,k_l,kint,Ifail
        REAL*8     xx0(3)
        REAL*8     lati,longi,alti
        REAL*8     stop_alt
        INTEGER*4  hemi_flag
        REAL*8     XFOOT(3),BFOOT(3),BFOOTMAG
+        INTEGER(4)  Nreb
+        PARAMETER (Nreb = 50)
 
        CALL GDZ_GEO(lati,longi,alti,xx0(1),xx0(2),xx0(3))
 !
-       call find_foot_opt ( xx0,stop_alt,hemi_flag,&
-            XFOOT,BFOOT,BFOOTMAG)
+       CALL find_foot_flex(xx0,stop_alt,hemi_flag,&
+                XFOOT,BFOOT,BFOOTMAG, Nreb)
 
        RETURN
        END
 
        SUBROUTINE find_foot_opt(xx0,stop_alt,hemi_flag,&
             XFOOT,BFOOT,BFOOTMAG)
-!
-!      inputs: 
-!      REAL*8 xx0(3) - GEO cartesian coordinates
-!      REAL*8 stop_alt - geodetic altitude of desired foot point (gdz), km
-!      integer*4 hemi_flag - hemishere flag, specifies hemisphere of foot point
-!      0 - same Hemisphere as start point
-!      +1 - Northern Hemisphere
-!      -1 - Southern Hemisphere
-!      2 - opposite Hemisphere as start point
-!
-!      outputs:
-!      REAL*8 XFOOT(3) - GDZ position of foot point (alt, lat, lon)
-!      REAL*8 BFOOT(3) - Magnetic field at foot point (nT, GEO)
-!      REAL*8 BFOOTMAG - Magnetic field at foot point (nT)
+        !
+        !      inputs: 
+        !      REAL*8 xx0(3) - GEO cartesian coordinates
+        !      REAL*8 stop_alt - geodetic altitude of desired foot point (gdz), km
+        !      integer*4 hemi_flag - hemishere flag, specifies hemisphere of foot point
+        !      0 - same Hemisphere as start point
+        !      +1 - Northern Hemisphere
+        !      -1 - Southern Hemisphere
+        !      2 - opposite Hemisphere as start point
+        !
+        !      outputs:
+        !      REAL*8 XFOOT(3) - GDZ position of foot point (alt, lat, lon)
+        !      REAL*8 BFOOT(3) - Magnetic field at foot point (nT, GEO)
+        !      REAL*8 BFOOTMAG - Magnetic field at foot point (nT)
 
-       USE fieldline_utils
-       IMPLICIT NONE
-       INCLUDE 'variables.inc'
-!
-       REAL(8), INTENT(IN) :: stop_alt
-       INTEGER(4), INTENT(IN) :: hemi_flag
-       REAL(8), INTENT(OUT) :: xx0(3), XFOOT(3),BFOOT(3),BFOOTMAG
-       INTEGER(4)  Nreb
-       PARAMETER (Nreb = 50)
+                IMPLICIT NONE
+                REAL(8), INTENT(IN) :: stop_alt
+                INTEGER(4), INTENT(IN) :: hemi_flag
+                REAL(8), INTENT(OUT) :: xx0(3), XFOOT(3),BFOOT(3),BFOOTMAG
+                
+                INTEGER(4)  Nreb
+                PARAMETER (Nreb = 50)
 
-       INTEGER(4) :: stop_type, nrebmax
-       REAL(8) :: dsreb, Lb
+                call find_foot_flex(xx0,stop_alt,hemi_flag,&
+                        XFOOT,BFOOT,BFOOTMAG, Nreb)
 
-       CALL COMPUTE_L_DIPOLE(xx0, Lb)
+       END SUBROUTINE
 
-       dsreb = Lb/(Nreb*1.d0) ! step size
-       nrebmax = 10*Nreb ! legacy 500 steps
-       stop_type = 1
-       CALL FIND_FIELDLINE_FOOT(xx0, dsreb, nrebmax, stop_type, stop_alt, &
-         hemi_flag, xfoot, bfoot, bfootmag)
+        SUBROUTINE find_foot_flex(xx0,stop_alt,hemi_flag,&
+            XFOOT,BFOOT,BFOOTMAG, Nreb)
+
+                USE fieldline_utils
+                IMPLICIT NONE
+                INCLUDE 'variables.inc'
+                !
+                REAL(8), INTENT(IN) :: stop_alt
+                INTEGER(4), INTENT(IN) :: hemi_flag, Nreb
+                REAL(8), INTENT(OUT) :: xx0(3), XFOOT(3),BFOOT(3),BFOOTMAG
+
+                INTEGER(4)  Nrebmax
+
+                INTEGER(4) :: stop_type
+                REAL(8) :: dsreb, Lb
+
+                nrebmax = 10*Nreb
+
+                CALL COMPUTE_L_DIPOLE(xx0, Lb)
+
+                dsreb = Lb/Nreb
+                stop_type = 1
+                CALL FIND_FIELDLINE_FOOT(xx0, dsreb, nrebmax, stop_type, stop_alt, &
+                        hemi_flag, xfoot, bfoot, bfootmag)
 
        END SUBROUTINE
