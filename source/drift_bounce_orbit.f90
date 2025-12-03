@@ -17,9 +17,9 @@
 !    along with IRBEM-LIB.  If not, see <http://www.gnu.org/licenses/>.
 !
 !-----------------------------------------------------------------------------
-      SUBROUTINE drift_bounce_orbit1(kext,options,sysaxes,
-     &     iyearsat,idoy,UT,xIN1,xIN2,xIN3,alpha,maginput,
-     &     Lm,Lstar,BLOCAL,BMIN,BMIR,XJ,posit,ind)
+      SUBROUTINE drift_bounce_orbit1(kext,options,sysaxes,&
+           iyearsat,idoy,UT,xIN1,xIN2,xIN3,alpha,maginput,&
+           Lm,Lstar,BLOCAL,BMIN,BMIR,XJ,posit,ind)
       ! inputs
       INTEGER*4 kext, options(5),sysaxes,iyearsat,idoy
       REAL*8 UT,xIN1,xIN2,xIN3,alpha,maginput(25)
@@ -30,34 +30,34 @@
       ! locals
       REAL*8 R0,hmin,hmin_lon
       R0 = 1.D0 ! stop search at surface of Earth
-      call drift_bounce_orbit2_1(kext,options,sysaxes,
-     &     iyearsat,idoy,UT,xIN1,xIN2,xIN3,alpha,maginput,
-     &     R0,
-     &     Lm,Lstar,BLOCAL,BMIN,BMIR,XJ,posit,ind,
-     &     hmin,hmin_lon)
+      call drift_bounce_orbit2_1(kext,options,sysaxes,&
+           iyearsat,idoy,UT,xIN1,xIN2,xIN3,alpha,maginput,&
+           R0,&
+           Lm,Lstar,BLOCAL,BMIN,BMIR,XJ,posit,ind,&
+           hmin,hmin_lon)
       end
 
       
-      SUBROUTINE drift_bounce_orbit2_1(kext,options,sysaxes,
-     &     iyearsat,idoy,UT,xIN1,xIN2,xIN3,alpha,maginput,
-     &     R0,
-     &     Lm,Lstar,BLOCAL,BMIN,BMIR,XJ,posit,ind,
-     &     hmin,hmin_lon)
+      SUBROUTINE drift_bounce_orbit2_1(kext,options,sysaxes,&
+           iyearsat,idoy,UT,xIN1,xIN2,xIN3,alpha,maginput,&
+           R0,&
+           Lm,Lstar,BLOCAL,BMIN,BMIR,XJ,posit,ind,&
+           hmin,hmin_lon)
       
-c     computes posit(3,1000,25), BLOCAL(1000,25) and ind(25) in same
-c     format as drift_shell1 (note 25 not 48 azimuths)
-c     also provides Bmin, Bmirror and usual stuff
-c     allows user to specify R0 = surface below which a particle is considered
-c     lost (R0 is in RE and the usual value is 1 but for the drift loss cone, one
-c     may wish to allow R0<1)
-c     also provides hmin and hmin_lon, the altitude and longitude (GDZ) of the
-c     minimum altitude along the drift orbit
+!     computes posit(3,1000,25), BLOCAL(1000,25) and ind(25) in same
+!     format as drift_shell1 (note 25 not 48 azimuths)
+!     also provides Bmin, Bmirror and usual stuff
+!     allows user to specify R0 = surface below which a particle is considered
+!     lost (R0 is in RE and the usual value is 1 but for the drift loss cone, one
+!     may wish to allow R0<1)
+!     also provides hmin and hmin_lon, the altitude and longitude (GDZ) of the
+!     minimum altitude along the drift orbit
       
       
       IMPLICIT NONE
       INCLUDE 'variables.inc'
-C     
-c     declare inputs
+!     
+!     declare inputs
       INTEGER*4    kext,k_ext,k_l,options(5)
       INTEGER*4    sysaxes
       INTEGER*4    iyearsat
@@ -67,27 +67,27 @@ c     declare inputs
       real*8     alpha
       real*8     maginput(25),R0
       REAL*8 hmin,hmin_lon
-c     
-c     
-c     Declare internal variables
+!     
+!     
+!     Declare internal variables
       INTEGER*4    kint,i,j,k
       INTEGER*4    ifail,Ilflag,t_resol,r_resol
       REAL*8     xGEO(3),xGEOmir(3), BL
       REAL*8     alti,lati,longi
-c     
-c     Declare output variables
+!     
+!     Declare output variables
       INTEGER*4  ind(25)
       REAL*8     posit(3,1000,25)
       REAL*8     BLOCAL(1000,25)
       REAL*8     BMIN,BMIR
       REAL*8     XJ
       REAL*8     Lm,Lstar
-C     
+!     
       COMMON /magmod/k_ext,k_l,kint
       COMMON /flag_L/Ilflag
       integer*4 int_field_select, ext_field_select
-C     
-c     initialize outputs
+!     
+!     initialize outputs
       Lm=baddata
       Lstar=baddata
       XJ=baddata
@@ -112,16 +112,16 @@ c     initialize outputs
       t_resol=options(3)+1
       r_resol=options(4)+1
       k_l=options(1)
-c
+!
 	kint = int_field_select ( options(5) )
 	k_ext = ext_field_select ( kext )
-c
+!
         CALL INITIZE
 	
 	call init_fields ( kint, iyearsat, idoy, ut, options(2) )
 	
-	call get_coordinates ( sysaxes, xIN1, xIN2, xIN3, 
-     6    alti, lati, longi, xGEO )
+	call get_coordinates ( sysaxes, xIN1, xIN2, xIN3, & 
+      alti, lati, longi, xGEO )
 	    
 	call set_magfield_inputs ( kext, maginput, ifail )
 	
@@ -131,15 +131,15 @@ c
          call INIT_TS07D_TLPR
 	     if ( ifail.lt.0 ) RETURN
       end if
-c
-c    
+!
+!    
 
       CALL find_bm_nalpha(xGEO,1,alpha,BL,BMIR,xGEOmir)
       IF (Bmir.NE.baddata) THEN
          Ilflag=0
-         call trace_drift_bounce_orbit_opt(t_resol,r_resol,
-     &        xGEOmir,R0,Lm,Lstar,XJ,
-     &        BLOCAL,Bmin,Bmir,posit,ind,hmin,hmin_lon)
+         call trace_drift_bounce_orbit_opt(t_resol,r_resol,&
+                 xGEOmir,R0,Lm,Lstar,XJ,&
+                 BLOCAL,Bmin,Bmir,posit,ind,hmin,hmin_lon)
          if (Lstar.eq.baddata) then
             hmin = baddata
             hmin_lon = baddata
@@ -151,25 +151,25 @@ c
       end                       ! end subroutine drift_bounce_orbit1
 
 
-c     --------------------------------------------------------------------
-c     
+!     --------------------------------------------------------------------
+!     
 
-      SUBROUTINE trace_drift_bounce_orbit(t_resol,r_resol,
-     &     lati,longi,alti,R0,Lm,Lstar,leI0,Bposit,
-     &     Bmin,Bmir,posit,Nposit,hmin,hmin_lon)
-C     
+      SUBROUTINE trace_drift_bounce_orbit(t_resol,r_resol,&
+           lati,longi,alti,R0,Lm,Lstar,leI0,Bposit,&
+           Bmin,Bmir,posit,Nposit,hmin,hmin_lon)
+!     
       IMPLICIT NONE
       INCLUDE 'variables.inc'
       
-C     Parameters
+!     Parameters
       INTEGER*4  Nreb_def,Nder_def,Ntet_def
       PARAMETER (Nreb_def = 50, Nder_def = 25, Ntet_def = 720)
       
-C     Input Variables
+!     Input Variables
       INTEGER*4 t_resol,r_resol
       REAL*8     lati,longi,alti,R0
       REAL*8     xx0(3)
-C     Output Variables       
+!     Output Variables       
       REAL*8     Lm,Lstar,leI0,Bmin,Bmir
       REAL*8     posit(3,20*Nreb_def,Nder_def)
       REAL*8     Bposit(20*Nreb_def,Nder_def)
@@ -177,49 +177,50 @@ C     Output Variables
       INTEGER*4  Nposit(Nder_def)
 
       CALL GDZ_GEO(lati,longi,alti,xx0(1),xx0(2),xx0(3))
-C     
-      call trace_drift_bounce_orbit_opt(t_resol,r_resol,
-     &     xx0,R0,Lm,Lstar,leI0,Bposit,
-     &     Bmin,Bmir,posit,Nposit,hmin,hmin_lon)
+!     
+      call trace_drift_bounce_orbit_opt(t_resol,r_resol,&
+           xx0,R0,Lm,Lstar,leI0,Bposit,&
+           Bmin,Bmir,posit,Nposit,hmin,hmin_lon)
 
       RETURN
       END      
 
-      SUBROUTINE trace_drift_bounce_orbit_opt(t_resol,r_resol,
-     &     xx0,R0,Lm,Lstar,leI0,Bposit,
-     &     Bmin,Bmir,posit,Nposit,hmin,hmin_lon)
-C     
+      SUBROUTINE trace_drift_bounce_orbit_opt(t_resol,r_resol,&
+           xx0,R0,Lm,Lstar,leI0,Bposit,&
+           Bmin,Bmir,posit,Nposit,hmin,hmin_lon)
+!     
+      USE fieldline_utils
       IMPLICIT NONE
       INCLUDE 'variables.inc'
       
-C     Parameters
+!     Parameters
       INTEGER*4  Nreb_def,Nder_def,Ntet_def
       PARAMETER (Nreb_def = 50, Nder_def = 25, Ntet_def = 720)
       
-C     Input Variables
+!     Input Variables
       INTEGER*4 t_resol,r_resol
       REAL*8     R0
       
-C     Internal Variables
+!     Internal Variables
       INTEGER*4  Nder,Nreb,Ntet
       INTEGER*4  k_ext,k_l,kint,n_resol
       INTEGER*4  Nrebmax
       REAL*8     rr,rr2
       REAL*8     xx0(3),xx(3),x1(3),x2(3)
       REAL*8     xmin(3)
-      REAL*8     B(3),Bl,B0,B1,B3
+      REAL*8     B(3),Bl,B0,B1,B3, bfoot(3), bfootmag
       REAL*8     dsreb0,dsreb,smin
       
       INTEGER*4  I,J,K,Iflag,Iflag_I,Ilflag,Ifail
-      INTEGER*4  Ibounce_flag
+      INTEGER*4  Ibounce_flag,hemi_flag,stop_type 
       !istore is azimuth cursor
       INTEGER*4  istore
-      REAL*8     Lb
+      REAL*8     Lb, stop_value
       REAL*8     leI,leI1
       REAL*8     XY,YY
       REAL*8     aa,bb
       
-C     
+!     
       REAL*8     tt
       REAL*8     tet(10*Nder_def),phi(10*Nder_def)
       REAL*8     tetl,tet1,dtet,lasttet
@@ -227,44 +228,41 @@ C
         REAL*8     pi,rad
         common /rconst/rad,pi
 
-c variables to deal with leI~0 case
+! variables to deal with leI~0 case
       REAL*8     x1old(3)
       INTEGER*4  I0flag
-C     
+!     
       REAL*8     Bo,xc,yc,zc,ct,st,cp,sp
       
-C     Output Variables       
+!     Output Variables       
       REAL*8     Lm,Lstar,leI0,Bmin,Bmir
       REAL*8     posit(3,20*Nreb_def,Nder_def)
       REAL*8     Bposit(20*Nreb_def,Nder_def)
       REAL*8     hmin,hmin_lon
       INTEGER*4  Nposit(Nder_def), tet_count
-C     
+!     
       COMMON /dipigrf/Bo,xc,yc,zc,ct,st,cp,sp
       COMMON /calotte/tet
       COMMON /flag_L/Ilflag
       COMMON /magmod/k_ext,k_l,kint
-C     
-C     
+!     
+!     
 
 
       Nder=Nder_def*r_resol     ! longitude steps
       Nreb=Nreb_def             ! steps along field line
       Ntet=Ntet_def*t_resol     ! latitude steps
       dtet = pi/Ntet            ! theta (latitude) step
-C     
+!     
       Nrebmax = 20*Nreb         ! maximum steps along field line
-C     
-C
-c     initialize hmin,hmin_lon to starting point
+!     
+!
+!     initialize hmin,hmin_lon to starting point
       hmin = baddata
       call check_hmin(xx0(1),xx0(2),xx0(3),hmin,hmin_lon)
 
-      CALL GEO_SM(xx0,xx)
-      rr = SQRT(xx(1)*xx(1)+xx(2)*xx(2)+xx(3)*xx(3))
-      tt = ACOS(xx(3)/rr)
-      Lb  = rr/SIN(tt)/SIN(tt)  ! dipole L
-C     
+      CALL COMPUTE_L_DIPOLE(xx0, Lb)
+!     
       CALL CHAMP(xx0,B,B0,Ifail)
       Bmir = B0 ! local field at starting point - for Bmir=0 case when alpha=90
       IF (Ifail.LT.0) THEN
@@ -272,118 +270,24 @@ C
          RETURN
       ENDIF
       Bmin = B0
-C     
+
+      
+
+!     
       dsreb0 = Lb/Nreb           ! step size dipole L / Nsteps
       dsreb = dsreb0
-C     
-C     calcul du sens du depart
-C     (compute hemisphere)
- 10   CONTINUE
-      CALL sksyst_var(-dsreb,xx0,x1,Bl,Ifail)
-      IF (Ifail.LT.0) THEN
-         Ilflag = 0
-         RETURN
-      ENDIF
-      B1 = Bl
-      
-      CALL sksyst_var(dsreb,xx0,x2,Bl,Ifail)
-      IF (Ifail.LT.0) THEN
-         Ilflag = 0
-         RETURN
-      ENDIF
-      B3 = Bl
+      CALL COMPUTE_FIELDLINE_FROM_MIR(xx0, dsreb, nrebmax, xmin, Bmin, leI0, Lm)
 
-C     
-C     attention cas equatorial
-C     (equatorial special case)
-      IF(B1.GT.B0 .AND. B3.GT.B0)THEN
-         aa = 0.5D0*(B3+B1-2.D0*B0)
-         bb = 0.5D0*(B3-B1)
-         smin = -0.5D0*bb/aa
-         Bmin = B0 - aa*smin*smin
-         leI0 = SQRT(1.D0-Bmin/B0)*2.D0*ABS(smin*dsreb)
-         Lm = (Bo/Bmin)**(1.D0/3.D0)
-c     write(6,*)'L McIlwain eq ',B0,leI0,Lm
-         GOTO 100
-      ENDIF
-      dsreb0 = dsreb ! keep smaller step size for future use
-      IF (B3.GT.B1) THEN
-         dsreb = -dsreb
-      ENDIF
-C     
-C     calcul de la ligne de champ et de I
-C     (compute field line and I)
-      Bmin = B0
-      B1 = B0
-      leI = 0.D0
-      DO I = 1,3
-         x1(I)  = xx0(I)
-      ENDDO
-C     
-      DO J = 1,Nrebmax
-         CALL sksyst_var(dsreb,x1,x2,Bl,Ifail)
-         IF (Ifail.LT.0) THEN
-            Ilflag = 0
-            RETURN
-         ENDIF
-         IF (Bl.LT.Bmin) THEN
-            xmin(1) = x2(1)
-            xmin(2) = x2(2)
-            xmin(3) = x2(3)
-            Bmin = Bl
-         ENDIF
-         IF (Bl.GT.B0) GOTO 20  ! traced past southern mirror point
-         x1(1) = x2(1)
-         x1(2) = x2(2)
-         x1(3) = x2(3)
-         leI = leI + SQRT(1.D0-Bl/B0)
-         
-         B1 = Bl
-      ENDDO
- 20   CONTINUE
+      !     calcul du point sur la ligne de champ a la surface de la terre du
+      !     cote nord
+      !     (compute the point nothern footpoint at Earth's surface)
 
-C     
-      IF (J.GE.Nrebmax) THEN    !open field line
-         Ilflag = 0
-         RETURN
-      ENDIF
+      stop_type = 0 ! GEO radius stop cdt
+      stop_value = R0 ! Rstop = R0
+      hemi_flag = 1 ! northern hemi
+      CALL FIND_FIELDLINE_FOOT(xx0, dsreb, nrebmax, stop_type, stop_value, hemi_flag, &
+                                    x2, bfoot, bfootmag)
 
-C     
-      leI = leI+0.5D0*SQRT(1.D0-B1/B0)*(B0-Bl)/(Bl-B1)
-      leI = leI*ABS(dsreb)
-      leI0 = leI
-C     
-C     calcul de L Mc Ilwain (Mc Ilwain-Hilton)
-C     (compute L McIlwain (McIlwain-Hilton))
-C     
-      XY = leI*leI*leI*B0/Bo
-      YY = 1.D0 + 1.35047D0*XY**(1.D0/3.D0)
-     &     + 0.465376D0*XY**(2.D0/3.D0)
-     &     + 0.0475455D0*XY
-      Lm = (Bo*YY/B0)**(1.D0/3.D0)
-C     
-C     calcul de Bmin
-c     (compute Bmin)
-C     
-      CALL sksyst_var(dsreb,xmin,x1,B3,Ifail)
-      IF (Ifail.LT.0) THEN
-         Ilflag = 0
-         RETURN
-      ENDIF
-      CALL sksyst_var(-dsreb,xmin,x1,B1,Ifail)
-      IF (Ifail.LT.0) THEN
-         Ilflag = 0
-         RETURN
-      ENDIF
-      aa = 0.5D0*(B3+B1-2.D0*Bmin)
-      bb = 0.5D0*(B3-B1)
-      smin = -0.5D0*bb/aa
-      Bmin = Bmin - aa*smin*smin
-      IF (x2(1)*x2(1)+x2(2)*x2(2)+x2(3)*x2(3).LT.1.0) THEN
-         Lm = -Lm
-      ENDIF
-C     
- 100  CONTINUE
       if (k_l .eq.0) then
          Ilflag = 0
          RETURN
@@ -392,48 +296,20 @@ C
          Ilflag = 0
          RETURN
       ENDIF
-C     
-C     calcul du point sur la ligne de champ a la surface de la terre du
-C     cote nord
-C     (compute the point nothern footpoint at Earth's surface)
-C     
-      DO I = 1,3
-         x1(I)  = xx0(I)
-      ENDDO
-      dsreb = ABS(dsreb)
-      DO J = 1,Nrebmax
-         CALL sksyst_var(dsreb,x1,x2,Bl,Ifail)
-         IF (Ifail.LT.0) THEN
-            Ilflag = 0
-	    RETURN
-	 ENDIF
-	 rr = sqrt(x2(1)*x2(1)+x2(2)*x2(2)+x2(3)*x2(3))
-	 IF (rr.LT.R0) GOTO 102
-	 x1(1) = x2(1)
-	 x1(2) = x2(2)
-	 x1(3) = x2(3)
-      ENDDO
- 102  CONTINUE
-      smin = sqrt(x1(1)*x1(1)+x1(2)*x1(2)+x1(3)*x1(3))
-      smin = (R0-smin)/(rr-smin)
-      CALL sksyst_var(smin*dsreb,x1,x2,Bl,Ifail)
-      IF (Ifail.LT.0) THEN
-         Ilflag = 0
-         RETURN
-      ENDIF
+
       rr = sqrt(x2(1)*x2(1)+x2(2)*x2(2)+x2(3)*x2(3))
       tet(1) = ACOS(x2(3)/rr)
       phi(1) = ATAN2(x2(2),x2(1))
-C     
-C     et on tourne -> on se decale sur la surface en phi et on cherche teta
-C     pour avoir leI0 et B0 constants
-C     (find the thetta/phi contour on the surface of the earth that conserves
-C     B0= Bmirror and leI0=I)
-      call trace_bounce_orbit(x2,B0,1,dsreb0,R0,
-     &     Bposit,posit,Nposit,Ibounce_flag,hmin,hmin_lon)
+
+!     et on tourne -> on se decale sur la surface en phi et on cherche teta
+!     pour avoir leI0 et B0 constants
+!     (find the thetta/phi contour on the surface of the earth that conserves
+!     B0= Bmirror and leI0=I)
+      call trace_bounce_orbit(x2,B0,1,dsreb0,R0,&
+           Bposit,posit,Nposit,Ibounce_flag,hmin,hmin_lon)
       if (Ibounce_flag.ne.1) then ! try again from starting point
-         call trace_bounce_orbit(xx0,B0,1,dsreb0,R0,
-     &        Bposit,posit,Nposit,Ibounce_flag,hmin,hmin_lon)
+         call trace_bounce_orbit(xx0,B0,1,dsreb0,R0,&
+                 Bposit,posit,Nposit,Ibounce_flag,hmin,hmin_lon)
       endif
       if (Ibounce_flag.ne.1) then
          Ilflag = 0
@@ -455,7 +331,7 @@ C     B0= Bmirror and leI0=I)
             tet1 = tetl
          ENDIF
          leI1 = baddata
-C     
+!     
          tet_count = 0          ! number of tries of different theta
  107     CONTINUE
          tet_count = tet_count+1
@@ -476,7 +352,7 @@ C
             tetl = tetl-dtet
             goto 107
          endif
-C     
+!     
          dsreb = dsreb/abs(dsreb)*dsreb0
          DO J = 1,Nrebmax
  109        CALL sksyst_var(dsreb,x1,x2,Bl,Ifail)
@@ -493,8 +369,8 @@ C
                      Ilflag = 0
                      RETURN
                   ENDIF
-                  leI = 0.5D0*SQRT(1.D0-Bl/B0)*(1.D0+(Bl-B0)/(Bl-B1))
-     &                 *abs(dsreb)
+                  leI = 0.5D0*SQRT(1.D0-Bl/B0)*(1.D0+(Bl-B0)/(Bl-B1))&
+                                   *abs(dsreb)
                   Iflag = 1
                ELSE
                   leI = leI+SQRT(1.D0-Bl/B0)*abs(dsreb)
@@ -515,7 +391,7 @@ C
             I0flag = 1
          else
             I0flag = 0
-c     Pourquoi? (why? I don't know!)
+!     Pourquoi? (why? I don't know!)
             IF (rr2.LT.R0) THEN
                leI = baddata
             ENDIF
@@ -526,11 +402,11 @@ c     Pourquoi? (why? I don't know!)
                   RETURN
                ENDIF
                lasttet = tetl
-               leI = leI+0.5D0*SQRT(1.D0-B1/B0)*(B0-Bl)/(Bl-B1)*
-     &              abs(dsreb)
+               leI = leI+0.5D0*SQRT(1.D0-B1/B0)*(B0-Bl)/(Bl-B1)*&
+                             abs(dsreb)
             ENDIF
          endif
-C     
+!     
          IF (Iflag_I .EQ.0) THEN
             IF (J.GE.Nrebmax) THEN
                tetl = tetl-dtet
@@ -573,16 +449,16 @@ C
          ENDIF
          
 ! Trace bounce orbit on field line from x1
-         call trace_bounce_orbit(x1,Bmir,istore,dsreb0,R0,
-     &        Bposit,posit,Nposit,Ibounce_flag,hmin,hmin_lon)
+         call trace_bounce_orbit(x1,Bmir,istore,dsreb0,R0,&
+                 Bposit,posit,Nposit,Ibounce_flag,hmin,hmin_lon)
          if (Ibounce_flag.ne.1) then
             ! try again from lasttet, which worked
             tet(I) = lasttet
             x1(1) = R0*SIN(tet(I))*COS(phi(I))
             x1(2) = R0*SIN(tet(I))*SIN(phi(I))
             x1(3) = R0*COS(tet(I))
-            call trace_bounce_orbit(x1,Bmir,istore,dsreb0,R0,
-     &           Bposit,posit,Nposit,Ibounce_flag,hmin,hmin_lon)
+            call trace_bounce_orbit(x1,Bmir,istore,dsreb0,R0,&
+                       Bposit,posit,Nposit,Ibounce_flag,hmin,hmin_lon)
          endif
          if (Ibounce_flag.ne.1) then
             Ilflag = 0
@@ -592,50 +468,22 @@ C
             istore = istore+1 ! next time, store in next array step
          endif                  ! mode(I,r_resol)
       ENDDO                     ! end of do I = 2,Nder
-C     
-C     calcul de somme de BdS sur la calotte nord
-C     (compute the integral of BdS on the norther polar cap)
-      x1(1) = 0.D0
-      x1(2) = 0.D0
-      x1(3) = R0
-      CALL CHAMP(x1,B,Bl,Ifail)
-      IF (Ifail.LT.0)THEN
-         Ilflag = 0
-         RETURN
-      ENDIF
-      BrR2 = abs((x1(1)*B(1)+x1(2)*B(2)+x1(3)*B(3)))*R0 ! phi integrates B dot dA, or Br*R^2dphi*dtheta
-      somme = BrR2*pi*dtet*dtet/4.D0
-      DO I = 1,Nder
-         tetl = 0.D0
-         DO J = 1,Ntet
-            tetl = tetl+dtet
-            IF (tetl .GT. tet(I)) GOTO 111
-            x1(1) = R0*SIN(tetl)*COS(phi(I))
-            x1(2) = R0*SIN(tetl)*SIN(phi(I))
-            x1(3) = R0*COS(tetl)
-            CALL CHAMP(x1,B,Bl,Ifail)
-            IF (Ifail.LT.0)THEN
-               Ilflag = 0
-               RETURN
-            ENDIF
-            BrR2 = abs((x1(1)*B(1)+x1(2)*B(2)+x1(3)*B(3)))*R0  ! phi integrates B dot dA, or Br*R^2dphi*dtheta
-            somme = somme+BrR2*SIN(tetl)*dtet*2.D0*pi/Nder
-	 ENDDO
- 111     CONTINUE
-      ENDDO
+
+      CALL INTEGRATE_FLUX_ON_POLAR_CAP(Nder, Ntet, tet, phi, somme, R0)
+
       if (k_l .eq.1) Lstar = 2.D0*pi*Bo/somme
       if (k_l .eq.2) Lstar = somme ! Phi and not Lstar
       IF (Lm.LT.0.D0) Lstar = -Lstar
       Ilflag = 1
-C     
+!     
       END
       
-      SUBROUTINE trace_bounce_orbit(xstart,Bmirror,istore,dsreb0,
-     &     R0,Bposit,posit,Nposit,Iflag,hmin,hmin_lon)
+      SUBROUTINE trace_bounce_orbit(xstart,Bmirror,istore,dsreb0,&
+           R0,Bposit,posit,Nposit,Iflag,hmin,hmin_lon)
 
       IMPLICIT NONE
 
-c     Declare input variables
+!     Declare input variables
       !xstart in GEO, Bmirror is particle mirror field strength
       !istore stores bounce orbit
       REAL*8 xstart(3)
@@ -643,12 +491,12 @@ c     Declare input variables
       INTEGER*4 istore
       ! hmin,hmin_lon are also inputs
 
-c     Declare output variables
+!     Declare output variables
       INTEGER*4  Nposit(25),Iflag
       REAL*8     posit(3,1000,25)
       REAL*8     Bposit(1000,25),R0,hmin,hmin_lon
 
-c     Declare internal variables
+!     Declare internal variables
       INTEGER*4 i,j,k,Ifail
       REAL*8 lati,longi,alti,Bl,Bmir
       REAL*8 xmir(3)
@@ -668,7 +516,7 @@ c     Declare internal variables
          store = 1
       endif
 
-c     trace up to mirror point, leave starting pointin Bmir, xmir
+!     trace up to mirror point, leave starting pointin Bmir, xmir
 
       call champ(xstart,Bvec,B1,Ifail)
 
@@ -722,19 +570,19 @@ c     trace up to mirror point, leave starting pointin Bmir, xmir
       call check_hmin(xmir(1),xmir(2),xmir(3),hmin,hmin_lon)
       dsreb = -dsreb0
 
-c     trace bounce trajectory
+!     trace bounce trajectory
       call sksyst_var(dsreb,xmir,x2,B2,Ifail)
       if (B2.GT.Bmir) then
          dsreb = -dsreb ! going wrong way
       endif
 
-c     trace to opposite mirror point
-c     set up trace
+!     trace to opposite mirror point
+!     set up trace
       B2 = BMIR
       do k=1,3
          x1(k)=xmir(k)
       enddo
-c     do trace
+!     do trace
       do j=1,999
          if (store.eq.1) then
             Bposit(j,istore) = B2
@@ -758,7 +606,7 @@ c     do trace
          Iflag = 0 ! failed to get past BMIR
          return
       elseif (B2.gt.BMIR) then
-c     finish trace to Bm: Bm between x1 and x2
+!     finish trace to Bm: Bm between x1 and x2
          BL = B2 ! closest stored point so far (x1)
          j = j+1                ! prepare to store in next element
          do i = 1,10            ! this converges logarithmically, so reduces step size by up to 2^10
