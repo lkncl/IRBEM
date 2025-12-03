@@ -52,7 +52,7 @@
        INTEGER*4  Nder,Nreb,Ntet
        INTEGER*4  k_ext,k_l,kint,n_resol,t_resol,r_resol
        INTEGER*4  Nrebmax
-       REAL*8     rr,rr2
+       REAL*8     rr,rr2, R0
        REAL*8     xx0(3),xx(3),x1(3),x2(3)
        REAL*8     xmin(3)
        REAL*8     lati,longi,alti
@@ -125,7 +125,8 @@
 ! calcul de somme de BdS sur la calotte nord
 ! "calculation of sum of BdS on the northern cap"
 !
-       CALL INTEGRATE_FLUX_ON_POLAR_CAP(Nder, Ntet, tet, phi, somme)
+       R0 = 1.0D0
+       CALL INTEGRATE_FLUX_ON_POLAR_CAP(Nder, Ntet, tet, phi, somme, R0)
 
        if (k_l .eq.1) Lstar = 2.D0*pi*Bo/somme
        if (k_l .eq.2) Lstar = somme  ! Phi and not Lstar
