@@ -146,7 +146,7 @@ SUBROUTINE trace_drift_shell_opt(xx0,Lm,Lstar,leI0,Bposit,Bmin,posit,Nposit, t_r
 !
 ! calcul de somme de BdS sur la calotte nord
 !
-       CALL INTEGRATE_FLUX_ON_POLAR_CAP(Nder, Ntet, tet, phi, somme)
+       CALL INTEGRATE_FLUX_ON_POLAR_CAP(Nder, Ntet, tet, phi, somme, 1.0D0)
        Lstar = 2.D0*pi*Bo/somme
 !       IF (Lm.LT.0.D0) Lstar = -Lstar
 !
