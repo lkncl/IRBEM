@@ -367,9 +367,94 @@ MODULE fieldline_utils
         ENDIF
     END SUBROUTINE
 
-    SUBROUTINE FIND_MIRROR_POINT(pos)
+    SUBROUTINE FIND_MIRROR_POINT(posGEO, alpha, dsreb, nrebmax, xmir, bmir, bmirmag)
+        
         IMPLICIT NONE
-        REAL(8), INTENT(IN) :: pos(3)
+        INCLUDE 'variables.inc'
+
+        REAL(8), INTENT(IN) :: posGEO(3), alpha, dsreb
+        INTEGER(4), INTENT(IN) :: Nrebmax
+        REAL(8), INTENT(OUT) :: xmir(3), bmir(3), bmirmag
+
+        REAL(8) :: x1(3), x2(3), xmirbuff(3), B(3), Bl, sn, sn2, sn2max, cste
+        INTEGER(4) :: I, J, Ifail
+
+        REAL(8)     pi,rad
+        COMMON /rconst/rad,pi
+
+        xmir = baddata
+        bmir = baddata
+        bmirmag = baddata
+
+        DO I = 1,3
+            x1(I)  = posGEO(I)
+            xmirbuff(I) = posGEO(I)
+        ENDDO
+
+        CALL CHAMP(x1,B,Bl,Ifail)
+        IF (Ifail .lt. 0) RETURN
+
+        sn = SIN(alpha*rad)  
+        sn2=sn*sn
+        Sn2max=sn2
+        cste=Bl/sn2
+
+        ! first pass, find point outside bounce
+        DO J = 1,Nrebmax
+            CALL sksyst(dsreb,x1,x2,Bl,Ifail)
+            IF (Ifail.LT.0) RETURN
+!
+            sn2=Bl/cste
+            
+            ! passed mirror point
+	        if (sn2 .GT.1.d0) EXIT
+
+            ! store candidate for last point above mirror point (inside bounce)
+            IF (sn2.GT.Sn2max) THEN
+                xmirbuff(1) = x2(1)
+                xmirbuff(2) = x2(2)
+                xmirbuff(3) = x2(3)
+                Sn2max = sn2
+            ENDIF
+            ! update pos
+            x1(1) = x2(1)
+            x1(2) = x2(2)
+            x1(3) = x2(3)
+        ENDDO
+        IF (J.GE.Nrebmax) RETURN ! open field line
+
+        ! refine computation from last point inside above mirror point, using dsreb/1000 arc lenght step
+        DO i=1,1000
+            CALL sksyst(dsreb/1000.d0,xmirbuff,x1,Bl,Ifail)
+            IF (Ifail.LT.0) RETURN
+
+	        sn2=Bl/cste
+	        if (sn2 .GT.1.d0) EXIT
+            xmirbuff(1) = x1(1)
+            xmirbuff(2) = x1(2)
+            xmirbuff(3) = x1(3)
+        ENDDO
+
+        ! lastly, check if point is inside earth
+        IF (xmir(1)*xmir(1)+xmir(2)*xmir(2)+&
+         xmir(3)*xmir(3).LT.1.D0) THEN
+	        bmirmag=baddata
+            xmir(1) = baddata
+            xmir(2) = baddata
+            xmir(3) = baddata
+	        RETURN
+        ENDIF
+
+        CALL CHAMP(xmirbuff,B,Bl,Ifail)
+        IF (Ifail .lt. 0) RETURN
+
+        ! return values if everything went good
+        DO I = 1, 3
+            xmir(I) = xmirbuff(I)
+            bmir(I) = B(I)
+        ENDDO
+        bmirmag = Bl
+
     END SUBROUTINE
 
     !=======================================================================
@@ -887,10 +972,10 @@ MODULE fieldline_utils
 
     END SUBROUTINE
 
-    SUBROUTINE INTEGRATE_FLUX_ON_POLAR_CAP(Nder, Ntet, tet, phi, flux)
+    SUBROUTINE INTEGRATE_FLUX_ON_POLAR_CAP(Nder, Ntet, tet, phi, flux, R0)
         IMPLICIT NONE
         INTEGER(4), INTENT(IN) :: Nder, Ntet
-        REAL(8), INTENT(IN) ::  tet(Nder), phi(Nder)
+        REAL(8), INTENT(IN) ::  tet(Nder), phi(Nder), R0
         REAL(8), INTENT(OUT) :: flux
 
         REAL(8) :: x1(3), B(3)
@@ -911,13 +996,13 @@ MODULE fieldline_utils
 
         x1(1) = 0.D0
         x1(2) = 0.D0
-        x1(3) = 1.D0
+        x1(3) = R0
         CALL CHAMP(x1,B,Bl,Ifail)
         IF (Ifail.LT.0)THEN
             Ilflag = 0
             RETURN
         ENDIF
-        BrR2 = abs((x1(1)*B(1)+x1(2)*B(2)+x1(3)*B(3))) ! phi integrates B dot dA, or Br*R^2dphi*dtheta, R=1
+        BrR2 = abs((x1(1)*B(1)+x1(2)*B(2)+x1(3)*B(3)))*R0 ! phi integrates B dot dA, or Br*R^2dphi*dtheta, R=1
         flux = BrR2*pi*dtet*dtet/4.D0
 
         DO I = 1,Nder
@@ -925,15 +1010,15 @@ MODULE fieldline_utils
             DO J = 1,Ntet
                 tetl = tetl+dtet
                 IF (tetl .GT. tet(I)) GOTO 111
-                x1(1) = SIN(tetl)*COS(phi(I))
-                x1(2) = SIN(tetl)*SIN(phi(I))
-                x1(3) = COS(tetl)
+                x1(1) = R0*SIN(tetl)*COS(phi(I))
+                x1(2) = R0*SIN(tetl)*SIN(phi(I))
+                x1(3) = R0*COS(tetl)
                 CALL CHAMP(x1,B,Bl,Ifail)
                 IF (Ifail.LT.0)THEN
                     Ilflag = 0
                     RETURN
                 ENDIF
-                BrR2 = abs((x1(1)*B(1)+x1(2)*B(2)+x1(3)*B(3))) ! phi integrates B dot dA, or Br*R^2dphi*dtheta, R=1
+                BrR2 = abs((x1(1)*B(1)+x1(2)*B(2)+x1(3)*B(3)))*R0 ! phi integrates B dot dA, or Br*R^2dphi*dtheta, R=1
                 flux = flux + BrR2*SIN(tetl)*dtet*2.D0*pi/Nder
             ENDDO
 111     CONTINUE
